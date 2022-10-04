@@ -27,7 +27,7 @@ Members of the family *Sciuridae* are found in Asia, Africa, Europe, as well as 
 raw_data <- as.data.frame(read.csv("Input/bold_data.txt", header = TRUE, sep = "\t", fill = TRUE, na.strings=c("", "NA")))
 
 # Initially exploring the data
-str(raw)
+str(raw_data)
 
 # Ensuring the Sciuridae dataset meets the criteria of >=10 BINs and 100 records
 dim (raw_data)
@@ -120,7 +120,7 @@ QC_data_count_nfilter <- QC_data_continent %>%
 
 # Using ggplot to create a barplot that will show us the data more clearly 
 ggbar_allgenera<- ggplot(data = QC_data_count, 
-               aes(x = genus_name, y = n, fill = continent)) +
+                         aes(x = genus_name, y = n, fill = continent)) +
   geom_bar(stat = "identity")+
   # Manually setting the y-axis limits and breaks and extending the bar to touch 
   # the x-axis line
@@ -136,15 +136,17 @@ ggbar_allgenera<- ggplot(data = QC_data_count,
     axis.line.y.left = element_line(color = "black"),
     axis.line.x = element_line(color = "black"),
     # Customize labels for the horizontal axis and the y-axis title
-    axis.text.x = element_text(size = 10,
-                               angle = 90, vjust = 0.5, hjust=1),
-    axis.title.y = element_text(size = 10)
-  )+ 
-  annotate("text", x = 2, y = 130, label = "A", size = 5)+
+    axis.text.x = element_text(size = 8, vjust = 0.5, hjust=1),
+    axis.text.y = element_text (size = 8),
+    axis.title.x = element_text (size = 10))+ 
   # Filling using the discrete Set1 palette from the RColorBrewer package, 
   # setting my y-axis label, and fixing the legend so Continent is capital
   scale_fill_brewer(palette = "Set1")+
-  labs (y = "Number of BOLD entries", x = "", fill = "Continent")
+  labs (y = "Number of BOLD entries", x = "", fill = "Continent") +
+  # Flipping the x and y-axis to improve aesthetic
+  coord_flip()+
+  # Sorting the genus names in the x-axis alphabetically
+  scale_x_discrete(limits = c(sort(x = unique(QC_data_count$genus_name), decreasing = T)))
 
 # Creating another graph that is identical, but uses the dataframe with any genera 
 # that has an incidence of 5 or greater.
@@ -154,8 +156,8 @@ allgenera_color <- c("Africa" = '#E41A1C', "Asia" = '#377EB8',
                      "Europe" = '#4DAF4A', "North America"= '#984EA3',
                      "South America" = '#FF7F00')
 
-ggbar_nfilter <- ggplot(data = QC_data_count_nfilter, 
-                aes(x = genus_name, y = n, fill = continent)) +
+ggbar_nfilter<- ggplot(data = QC_data_count_nfilter, 
+                        aes(x = genus_name, y = n, fill = continent)) +
   geom_bar(stat = "identity")+
   # Manually setting the y-axis limits and breaks and extending the bar to touch 
   # the x-axis line
@@ -167,29 +169,28 @@ ggbar_nfilter <- ggplot(data = QC_data_count_nfilter,
     panel.background = element_rect(fill = "white"),
     # Remove tick marks by setting their length to 0
     axis.ticks.length = unit(0, "mm"),
-    # Remove the title for both axes
-    axis.title = element_blank(),
     # X-axis and only the left line of the vertical axis is painted in black
     axis.line.y.left = element_line(color = "black"),
     axis.line.x = element_line(color = "black"),
     # Customize labels for the horizontal axis and the y-axis title
-    axis.text.x = element_text(size = 10,
-                               angle = 90, vjust = 0.5, hjust=1),
-    axis.title.y = element_text(size = 10)
-  )+ 
-  annotate("text", x = 1, y = 130, label = "B", size = 5)+
+    axis.text.x = element_text(size = 7, vjust = 0.5, hjust=1),
+    panel.border = element_rect(colour = "black", fill=NA, size=1),
+    axis.text.y = element_text (size = 7))+ 
   # Filling using the discrete palette I created to make sure it matches 
   # ggbar_allgenera from Figure 2A 
   scale_fill_manual(values = allgenera_color)+
   # Suppressing this legend as the combined figure does not need 2 separate legends and 
   # setting my y-axis label
   theme(legend.position = "none")+
-  labs (y = "Number of BOLD entries", x = "")
-
+  labs (y = "", x = "")+
+  # Flipping the x and y-axis to improve aesthetic
+  coord_flip()+
+  # Sorting the genus names in the x-axis alphabetically
+  scale_x_discrete(limits = c(sort(x = unique(QC_data_count_nfilter$genus_name), decreasing = T)))
 
 # Combining both plots using the patchwork package and 
 # setting the title and subtitle themes
-ggbar_combined <- ggbar_allgenera + ggbar_nfilter +
+ggbar_combined <- ggbar_allgenera + inset_element(ggbar_nfilter, 0.1, 0.38, 1, 1) +
   plot_annotation(title = ("Figure 2: Sciuridae Genera by Continent"),
     subtitle = "Source: BOLD: The Barcode of Life Data System") & 
   theme(
@@ -208,7 +209,7 @@ ggbar_combined
 ```
 
 
-#### Figure 2: Each stacked bar represents a total count of individuals within a given genera that were submitted to BOLD (The Barcode of Life Data System) and is separated by colour, corresponding to a specific continent. Figure 2A depicts the number of BOLD entries of the *Sciuridae* genera that passed our data filtering and quality control (n=379). Figure 2B visualizes the number of BOLD entries from a genera that had a sample size of greater than or equal to 5 (n=346), thus giving us a better idea of the dominant genera within our data. 
+#### Figure 2: Each stacked bar represents a total count of individuals within a given genera that were submitted to BOLD (The Barcode of Life Data System) and is separated by colour, corresponding to a specific continent. Figure 2 depicts the number of BOLD entries of the *Sciuridae* genera that passed our data filtering and quality control (n=379). The inset figure visualizes the number of BOLD entries from a genera that had a sample size of greater than or equal to 5 (n=346), thus giving us a better idea of the dominant genera within our data. 
 
 ## Code Part 2 - Analysis - Checking for accessibility (colour-blind friendly) of figure 2 
 
@@ -283,7 +284,7 @@ ratio_map + guides (size = FALSE, alpha = FALSE)
 #### Figure 3: The ratio of unique BIN (Barcode Index Number) assignments to unique number of species are broken down by continent. The colour corresponds to the continent, while the size of the point corresponds to the size of the ratio (higher ratios indicate larger unique number of BINs relative to unique number of species.)
 
 ## Discussion and Conclusion
-Many sciurids are considered keystone species due to their ability to create new habitat niches, and as such, the identification of possible new species is an important area of research (Waterman et al. 2021). When looking at the 24 unique genera within the family *Sciuridae*, it is clear that while individuals are located on each of the 5 continents within their known range (Figure 1), there are a greater number of individuals submitted to BOLD from Asia, Europe, and North America (Figure 2A). In fact, among genera with >=5 individuals submitted to BOLD, there is only one from South America (Genus *Sciurus*; Figure 2B). As such, this might support the conclusion that there is a larger diversity of genera in Asia, Europe, and North America. 
+Many sciurids are considered keystone species due to their ability to create new habitat niches, and as such, the identification of possible new species is an important area of research (Waterman et al. 2021). When looking at the 24 unique genera within the family *Sciuridae*, it is clear that while individuals are located on each of the 5 continents within their known range (Figure 1), there are a greater number of individuals submitted to BOLD from Asia, Europe, and North America (Figure 2). In fact, among genera with >=5 individuals submitted to BOLD, there is only one from South America (Genus *Sciurus*; Figure 2). As such, this might support the conclusion that there is a larger diversity of genera in Asia, Europe, and North America. 
 
 Amori et al. (2009) discovered that the total diversity of the genera *Sciuridae* was inversely correlated to latitude. To assess the relationship between the number of genera and the number of BINs in the BOLD database relative to geographic location, I generated a ratio that divided the number of unique BINs to the number of unique species in a given continent. To display this data graphically, a map was generated depicting these results. Interestingly, we can see that while all 5 continents have a BIN:Species ratio of >=1, there are a gradient of values (Figure 3). It was noted that the highest BIN:Species ratio was seen in South America, followed by Asia and Europe respectively. It is important to note that the final dataset obtained via BOLD and used in this study only has a single genus from South America. As such, the large BIN:Species ratio may be a product of our small sample size. However, this is still possibly indicative of cryptic or introgressed individuals among South American *Sciuridae* genera and warrants investigation. The findings presented here provide further motivation for investigating the presence of cryptic or possibly introgressed regions and highlights the large-scale geographic areas that may require more focus than others. Identifying finer-scale areas that have relatively high BIN:Species ratios would help facilitate a more targeted approach in distributing resources to investigate possibly crpytic or introgressed species. 
 
@@ -309,6 +310,8 @@ How to Filter Rows that Contain a Certain String Using dplyr. https://www.statol
 How To Make World Map with ggplot2 in R? https://datavizpyr.com/how-to-make-world-map-with-ggplot2-in-r/. Accessed 26 September 2022.
 
 Kapustina SY, Lyapunova EA, Adiya Y, & Brandler OV. Features of Interspecific Contacts and Hybridization of Ground Squirrels (Marmotinae, Sciuridae, Rodentia) in Mongolia. Dokl. Biochem. Biophys. 2018;482(1):275-278. doi: 10.1134/S1607672918050125. 
+
+Pedersen, TL. Create an inset to be added on top of the previous plot. https://patchwork.data-imaginist.com/reference/inset_element.html. Accessed 04 October 2022.
 
 Ou J. colorBlindness Guide. https://cran.r-project.org/web/packages/colorBlindness/vignettes/colorBlindness.html. Accessed 26 September 2022.
 
