@@ -1,2 +1,2 @@
 # Exploring-geographic-distribution-of-Sciuridae-entries-on-BOLD
-Using entries on the BOLD database, we explore the geographic distribution of Sciuridae species and visualize the data
+This is a branch of assignment 1 where we can collaborate on assignment 3
