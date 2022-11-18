@@ -8,11 +8,17 @@ output:
 ---
 ```{r setup, include=TRUE, warning = FALSE, message = FALSE, results = "hide"}
 # Loading relevant packages and combining invisible with lapply 
+#Nishita edit: added knitr and magrittr to the libraries loaded (used when creating the kable)
 # to not print boolean statement of TRUE for each package being loaded
 libs <- c("tidyverse", "ggplot2", "maps", 
-          "patchwork", "countrycode", "colorBlindness")
+          "patchwork", "countrycode", "colorBlindness","knitr","magrittr")
 invisible (lapply(libs, require, character.only = TRUE))
 ```
+
+#Nishita
+#install.packages("countrycode")
+#install.packages("colorBlindness")
+#library(colorBlindness)
 
 ## Introduction
 
@@ -22,13 +28,29 @@ Members of the family *Sciuridae* are found in Asia, Africa, Europe, as well as 
 ```{r data import and filtering, include=TRUE, warning = FALSE, message = FALSE, results = "hide", tidy=TRUE, tidy.opts=list(width.cutoff=60)}
 
 # Obtaining the raw data from the BOLD API.
-#raw_data <- read_tsv ("http://www.boldsystems.org/index.php/API_Public/combined?taxon=Sciuridae&format=tsv")
-# write_tsv (raw_data, file = "bold_data.txt")
+raw_data <- read_tsv ("http://www.boldsystems.org/index.php/API_Public/combined?taxon=Sciuridae&format=tsv")
+write_tsv (raw_data, file = "bold_data.txt")
 # Importing raw data - using fill = TRUE as some cells are empty and read.csv doesn't like that, also telling read.csv which strings can be referred to as NA. I downloaded the data from BOLD but commented that line out so it wasn't reading in every time I ran the code.
-raw_data <- as.data.frame(read.csv("Input/bold_data.txt", header = TRUE, sep = "\t", fill = TRUE, na.strings=c("", "NA")))
+raw_data <- as.data.frame(read.csv("bold_data.txt", header = TRUE, sep = "\t", fill = TRUE, na.strings=c("", "NA")))
 
 # Initially exploring the data.
 str(raw_data)
+
+#Nishita edit; Use kable() function in knitr package to load the exploratory data into a data frame; more organized than the str(raw_data)
+# raw_data_kable<-data.frame(variable = names(raw_data), classe = sapply(raw_data, typeof), first_values = sapply(raw_data, function(x) paste0(head(x),  collapse = ", ")), row.names = NULL) %>%
+#   kable()
+# 
+# view(raw_data_kable)
+# 
+# 
+# 
+# raw_data_kable2<-data.frame(do.call("rbind", strsplit(as.character(raw_data$test),"|", fixed = TRUE))) %>%
+#   kable()
+# 
+# view(raw_data_kable2)
+
+#knitr::kable(head(raw_data))
+
 
 # Ensuring the Sciuridae dataset meets the criteria of >=10 BINs and 100 records.
 dim (raw_data)
@@ -39,7 +61,7 @@ unique(raw_data$bin_uri)
 # Filtering the dataset to only contain variables that will be used for downstream analyses and writing as a csv to make sure I have a file of my filtered data - this line has been commented out.
 raw_filtered <- raw_data %>%
   select (c(species_name, genus_name, country, lat, lon, bin_uri))
-# write.csv(raw_filtered, "Output/Assignment1_Filtered_BOLD_data.csv")
+# write.csv(raw_filtered, "Assignment1_Filtered_BOLD_data.csv")
 
 # Exploring dataset for potential errors/biases - looks like there are a couple of entries in the country column that aren't a country (Exception - Culture and Exception - Zoological Park) as well as 349 NAs.
 countries_bold <- raw_filtered %>%
@@ -107,12 +129,13 @@ figure_1 <- ggplot() +
     color = "white", fill = "lightgray", alpha = 0.5) +
   # Using geom_point to plot each data point.
   # I set alpha = 0.7 for a softer/slightly more transparent look.
-  geom_point(
+#Nishita edit: changing color of points on plot based on continent; this makes it easier for the viewer to make a quick visual appraisal of the number of BOLD entries found in each continent. Commented out line 138, which removes the legend
+    geom_point(
     data = QC_data_continent,
-    aes(lon, lat),
+    aes(lon, lat,color=continent),
     alpha = 0.7, size = 1.5)+
   # Removing the legend as it's not necessary.
- theme(legend.position = "none")+
+# theme(legend.position = "none")+
   labs (y = "Latitude (°)", x = "Longitude (°)")
 
 # Printing Figure 1 to the screen
@@ -232,7 +255,7 @@ figure_2
 
 
 ```{r colour blind check, include=TRUE, warning = FALSE, message = FALSE, fig.show = "hide", results = "hide", tidy=TRUE, tidy.opts=list(width.cutoff=60)}
-# Using tool from package colorBlidness to simulate the color vision deficiency - CVD simulator.
+# Using tool from package colorBlindness to simulate the color vision deficiency - CVD simulator.
 # This is a preliminary figure, purely for exploring the data.
 cvdPlot(ggbar_allgenera)
 # It looks like our figure is accessible for individuals with deuteranopia and protanopia (the most common forms of red-green colour blindness).
@@ -254,7 +277,9 @@ bin_species_ratio <- QC_data_continent %>%
   mutate (centroid_long = mean(lon))%>%
   mutate (centroid_lat = mean (lat)) %>%
   summarise (ratio = (n_distinct(bin_uri)/n_distinct(species_name)), across()) %>%
-  distinct (continent, ratio, centroid_long, centroid_lat)
+  mutate(across(where(is.numeric), round, 3))%>%
+  distinct (continent, ratio, centroid_long, centroid_lat) # %>%
+  #round(bin_species_ratio$ratio, 3)
 
 # Checking to make sure the summarise and mutate functions only give us 
 # 5 unique values each - one per continent.
@@ -282,7 +307,12 @@ scale_colour_manual(values = allgenera_color)+
     aes(x = centroid_long, y = centroid_lat, 
         size = ratio,
         colour = continent,
-        alpha = 0.7))+
+        alpha = 0.7,
+        ))+
+  geom_text(data=bin_species_ratio, 
+            aes(label = ratio, x = centroid_long, y = centroid_lat),
+            label.size = 1,
+            nudge_y = 10) +
   # Modifying the scale_size_binned parameter to make it more graphically clear the 
   # variance in size of the ratio of BINs:Species.
   scale_size_binned(range = c(2,10), breaks = waiver(), n.breaks = 10)+
@@ -302,7 +332,8 @@ scale_colour_manual(values = allgenera_color)+
       size = 10,
       hjust = 0.5))+
   # Removing the size legend as it's not relevant in the scope of this research.
-  guides (size = FALSE, alpha = FALSE)
+  guides (size = FALSE, alpha = FALSE) 
+
 # Printing figure 3 to the screen.
 figure_3
 
